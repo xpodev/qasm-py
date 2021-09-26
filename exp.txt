@@ -1,0 +1,69 @@
+QVM is a VM specification describing the behaviour of a stack machine
+
+
+A machine has the following behaviour:
+ - DMA - Direct memory access read/write. The machine has direct access to memory through a memory address and can read and write to that memory
+ - IO Ports - Access to external devices through some IO ports.
+ - Execution - The machine can execute a stream of instruction (to be more precise, a block of instructions).
+    - Flow Control - The ability of the machine to execute a specific instruction depending on its address
+        - Jmp - Sets the next instruction to execute
+        - Call - Saves the current instruction address for later to return and jumps
+        - Jxx - Jmp conditionally
+    - ALU - Performs arithmetic & logic operation on values
+        - Add - Adds 2 numbers
+        - Subtract - Subtracts 2 numbers
+        - Multiply - Multiplies 2 numbers
+        - Divide - Divides 2 numbers
+        - Modulus - Find the remainder of 2 numbers
+        - AND - Bitwise AND
+        - OR - Bitwise OR
+        - XOR - Bitwise XOR
+        - NOT - Bitwise NOT
+        - Compare - Compares 2 values by subtracting them and setting the appropriate flags
+    - Call Stack - A stack holding call frames
+        - Arguments - Argument variables passed from the caller
+        - Locals - Local variables
+    - Memory Access - Direct memory access (reading and writing)
+        - Load - Reads a value from memory to the destination
+        - Set - Stores a value in memory in the destination
+    - Flags - Information about the last instruction executed
+    - Assembly Language - A language for building binary files to execute on the machine
+        - ALU Instructions - Instructions for using the ALU
+        - DMA Instructions - Instructions for memory access (RAM & Registers mainly)
+        - Flow Control - Instructions for going to another label
+            - Label - A label is like a pointer that points to a (relative) location in the assembly
+        - Data - Instructions to define static data which will be loaded to memory when the program loads
+
+
+A virtual machine - VM from now on - is a non-physical machine which runs on another machine as a process:
+ - Binary File - The virtual machine can read a file to its memory, using it in any way it see fits.
+ - Transparent State - The host machine has direct access to the internal state of the VM.
+ - Encapsulation - The VM should not know it's running on another machine, but it may give access to it.
+
+
+A stack machine - SM from now on - is a machine which uses a stack for evaluation:
+ - Stack - A data structure which can hold any number of items, with access from 1 end (top of the stack)
+ - Assembly Language - (see above @ Machine)
+     - Push - Add a value to the top of the stack
+     - Pop - Remove the top value from the stack
+     - Call - Pushes the return address onto the stack and jumps to the destination
+     - Return - Pops the return address from the stack and jumps to it
+
+
+--------------     _______________     --------------
+| {File}.asm | ==> || Assembler || ==> | {File}.exe |
+--------------     ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯     --------------
+
+
+
+Assembler:
+String -> Token[] -> AssemblyDocument -> AssemblyBinary -> Bytes -> File IO
+
+build instruction
+add to size
+add instruction to buffer
+
+labels can use the size
+
+compile instructions
+add bytes to buffer

@@ -1,0 +1,13 @@
+.section data
+.label my_string
+db "Hello, Libraries!", int8 0
+
+.section code
+
+.func str get_str () export:
+    push my_string
+    ret
+
+.func int32 get_x (int32 x) export:
+    push arg x
+    ret
