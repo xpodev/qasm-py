@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 from enum import IntEnum
 from typing import Union, Optional
 
-from qasm.parsing.asm_token import Token, TokenType
-
 
 __all__ = [
     "ITokenizer",
+    "Token",
+    "TokenType",
     "TokenizerOptions",
     "UnexpectedCharacterError",
     "UnexpectedTokenError"
@@ -23,6 +23,90 @@ class TokenizerOptions(IntEnum):
     EmitComments = 4
     IncludeCommentCharacter = 5
     IncludeCommentEOL = 6
+
+
+class TokenType(IntEnum):
+    WhiteSpace = -4
+    NewLine = -3
+    Comment = -2
+
+    Unknown = -1
+    EOF = 0
+    Dot = 1
+    Identifier = 2
+
+    LiteralIndicator_Minimum = 4
+    Literal_Char = 4
+    Literal_Int = 5
+    Literal_String = 6
+    Literal_Bool = 7
+    Literal_Float = 8
+    Literal_Null = 9
+    Literal_Bytes = 10
+    Literal_Hex = 11
+    LiteralIndicator_Maximum = 11
+
+    Comma = 20
+    LeftCurlyBracket = 21
+    RightCurlyBracket = 22
+    LeftCurvyBracket = 23
+    RightCurvyBracket = 24
+    Colon = 25
+
+    def is_literal(self):
+        return self.LiteralIndicator_Minimum <= self <= self.LiteralIndicator_Maximum
+
+
+class Token:
+    def __init__(self, line: int, char: int, type_: TokenType, value: str = None):
+        self._line = line
+        self._char = char
+        self._type = type_
+        self._value = value
+
+    @property
+    def line(self):
+        return self._line
+
+    @property
+    def char(self):
+        return self._char
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def value(self):
+        return self._value
+
+    def __eq__(self, other):
+        if type(other) is str:
+            return self._value == other
+        if type(other) is int:
+            return self._type.value == other
+        if type(other) is TokenType:
+            return self._type.value == other.value
+        if type(other) is Token:
+            return self._value == other.value and self._type == other.type
+        raise TypeError(f"Incompatible types for operand (==): {Token} and {type(other)}")
+
+    def __ne__(self, other):
+        if type(other) is str:
+            return self._value != other
+        if type(other) is int:
+            return self._type.value != other
+        if type(other) is TokenType:
+            return self._type.value != other.value
+        if type(other) is Token:
+            return self._value != other.value or self._type != other.type
+        raise TypeError(f"Incompatible types for operator (!=): {Token} and {type(other)}")
+
+    def __str__(self):
+        return \
+            f"Token(Type={self._type.name}, line={self._line}, char={self._char})" \
+            if self._value is None else \
+            f"Token(Type={self._type.name}, value={self._value}, line={self._line}, char={self._char})"
 
 
 class UnexpectedCharacterError(Exception):

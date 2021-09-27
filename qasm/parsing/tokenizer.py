@@ -1,14 +1,13 @@
 from typing import Union, Set, Optional
 
-from qasm.parsing.asm_token import Token
-from qasm.parsing.itokenizer import ITokenizer, TokenizerOptions, UnexpectedTokenError, UnexpectedCharacterError
-from qasm.parsing.tokens import TokenType
+from qasm.parsing.itokenizer import *
 
 
 __all__ = [
     "Token",
     "Tokenizer",
     "TokenizerOptions",
+    "TokenType",
     "UnexpectedCharacterError",
     "UnexpectedTokenError"
 ]
