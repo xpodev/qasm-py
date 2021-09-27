@@ -47,4 +47,7 @@ class Token:
         raise TypeError(f"Incompatible types for operator (!=): {Token} and {type(other)}")
 
     def __str__(self):
-        return f"Token(Type={self._type.name}, line={self._line}, char={self._char})" if self._value is None else f"Token(Type={self._type.name}, value={self._value}, line={self._line}, char={self._char})"
+        return \
+            f"Token(Type={self._type.name}, line={self._line}, char={self._char})"\
+            if self._value is None else \
+            f"Token(Type={self._type.name}, value={self._value}, line={self._line}, char={self._char})"

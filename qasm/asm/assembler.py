@@ -217,32 +217,32 @@ class CodeSection(SizedSection["code"]):
             for pt, arg in zip(inst.types, instruction.arguments):
                 if pt is Type:
                     pt = Int8
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[arg.value.value])
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[arg.value.value])
                     arg = InstructionNode.InstructionArgument(tkn, pt.name)
                 elif pt is TypeSize:
                     pt = Int
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, assembler.get_type(arg.value.value).size)
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, assembler.get_type(arg.value.value).size)
                     arg = InstructionNode.InstructionArgument(tkn, pt.name)
                 if isinstance(pt, AnyOf):
                     if arg.type is None:
-                        raise ValueError(f"One of {tuple(map(str, pt.types))} must be supplied (error at line {arg.value.line}, char {arg.value.char})")
+                        raise ValueError(f"One of {tuple(map(str, pt.types))} must be supplied (error at line {arg.value.line}, char {arg.value.current_char})")
                     pt = TYPE_TABLE[arg.type]
                     types_.append(Int8)
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
                 if pt is Variable:
                     pt = assembler.get_type(arg.type) if arg.type else bin_type_from_token_type(arg.value.type)
                     if isinstance(pt, TypeDefinition):
                         pt = Pointer[pt]
                     types_.append(Int8)
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
                 if pt is Local:
                     name = arg.value.value
                     local = assembler.current_function.locals[name]
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[local.type.name])
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[local.type.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, local.index)
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, local.index)
                     args.append(InstructionNode.InstructionArgument(tkn))
                     types_.append(Int8)
                     types_.append(Local)
@@ -250,9 +250,9 @@ class CodeSection(SizedSection["code"]):
                 elif pt is Argument:
                     name = arg.value.value
                     param = assembler.current_function.parameters[name]
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[param.type.name])
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[param.type.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
-                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, param.index)
+                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, param.index)
                     args.append(InstructionNode.InstructionArgument(tkn))
                     types_.append(Int8)
                     types_.append(Argument)

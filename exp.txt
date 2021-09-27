@@ -67,3 +67,12 @@ labels can use the size
 
 compile instructions
 add bytes to buffer
+
+
+I should probably make the whole compilation process a little better by having a multi-pass assemlber/compiler
+
+first pass is the pre-processor that I may or may not add one day
+second pass will deduce the order of sections and the available labels (static imports will also happen in this stage)
+third pass will add the all the instructions that rely on labels (code, data, config etc...)
+fourth pass will resolve all references to labels
+fifth pass will assemble the file, generating a binary file

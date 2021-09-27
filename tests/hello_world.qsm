@@ -1,0 +1,21 @@
+.section config
+    entry _entry
+
+
+.section data
+.label STR_HelloWorld
+db "Hello, World!", int8 0
+db 0.0
+
+
+.section code
+.func int _entry():
+    call main
+    exit
+
+.func int main():
+    push STR_HelloWorld
+    dlog str
+
+    push 0
+    ret
