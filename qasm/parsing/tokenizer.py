@@ -1,6 +1,9 @@
-from typing import Union, Set, Optional
+from typing import Union, Set, Optional, Iterable
 
-from qasm.parsing.itokenizer import *
+try:
+    from .itokenizer import *
+except ImportError:
+    from qasm.parsing.itokenizer import *
 
 
 __all__ = [
@@ -19,12 +22,12 @@ class Tokenizer(ITokenizer):
             self._tokenizer = tokenizer
             self._options = set(opt)
 
-        def set_options(self, *args: TokenizerOptions) -> None:
-            self._options = set(args)
-
         def options(self, value: bool) -> None:
             for option in self._options:
                 self._tokenizer[option] = value
+
+        def set_options(self, *args: TokenizerOptions) -> None:
+            self._options = set(args)
 
         def __enter__(self):
             self.options(True)
@@ -265,6 +268,10 @@ class Tokenizer(ITokenizer):
     def __getitem__(self, item: TokenizerOptions) -> bool:
         return self._options[item]
 
+    def __iter__(self) -> Iterable[Token]:
+        while self.has_tokens:
+            yield self.advance()
+
     def __setitem__(self, key: TokenizerOptions, value: bool) -> None:
         if type(value) is not bool:
             raise TypeError(f"value must be of type {bool.__name__}")
@@ -275,5 +282,5 @@ if __name__ == '__main__':
     with open("../../tests/hello_world.qsm") as src:
         _tokenizer = Tokenizer(src.read())
         with _tokenizer.options() as options:
-            while _tokenizer.has_tokens:
-                print(_tokenizer.advance())
+            for token in _tokenizer:
+                print(token)

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from typing import Union, Optional
+from typing import Iterable, Optional, Union
 
 
 __all__ = [
@@ -196,7 +196,6 @@ class ITokenizer(ABC):
         """
         :return: Whether or not the tokenizer has more tokens to extract.
         """
-        ...
 
     @property
     @abstractmethod
@@ -204,7 +203,6 @@ class ITokenizer(ABC):
         """
         :return Current token (last token that was created).
         """
-        ...
 
     @abstractmethod
     def advance(self) -> Token:
@@ -214,7 +212,6 @@ class ITokenizer(ABC):
 
         :return: The next token in the source.
         """
-        ...
 
     @abstractmethod
     def eat(self, value: Union[str, TokenType]) -> Token:
@@ -225,7 +222,6 @@ class ITokenizer(ABC):
         :return: The next token in the source (see `ITokenizer.advance()`)
         :raise UnexpectedTokenError if the current token didn't match the specified value
         """
-        ...
 
     @abstractmethod
     def __getitem__(self, item: TokenizerOptions) -> bool:
@@ -235,7 +231,12 @@ class ITokenizer(ABC):
         :param item: The name of the option.
         :return: The status of the option.
         """
-        ...
+
+    @abstractmethod
+    def __iter__(self) -> Iterable[Token]:
+        """
+        :return: An iterable of all the tokens in this tokenizer.
+        """
 
     @abstractmethod
     def __setitem__(self, key: TokenizerOptions, value: bool) -> None:
@@ -245,4 +246,3 @@ class ITokenizer(ABC):
         :param key: The name of the option to set.
         :param value: The new status of the option to set.
         """
-        ...
