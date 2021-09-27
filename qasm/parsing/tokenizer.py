@@ -1,51 +1,17 @@
 from typing import Union, Set, Optional
 
 from qasm.parsing.asm_token import Token
-from qasm.parsing.itokenizer import ITokenizer, TokenizerOptions
+from qasm.parsing.itokenizer import ITokenizer, TokenizerOptions, UnexpectedTokenError, UnexpectedCharacterError
 from qasm.parsing.tokens import TokenType
 
 
-class UnexpectedCharacterError(Exception):
-    def __init__(self, expected: Optional[str], got: str, line: int, character: int):
-        if expected:
-            super().__init__(f"Expected \'{expected}\', got \'{got}\' (at line {line}, character {character})")
-        else:
-            super().__init__(f"Unexpected character \'{got}\' (at line {line}, character {character})")
-        self._expected = expected
-        self._got = got
-        self._line = line
-        self._character = character
-
-    @property
-    def expected(self):
-        return self._expected
-
-    @property
-    def got(self):
-        return self._got
-
-    @property
-    def line(self):
-        return self._line
-
-    @property
-    def character(self):
-        return self._character
-
-
-class UnexpectedTokenError(Exception):
-    def __init__(self, expected: Union[TokenType, str], got: Token):
-        super().__init__(f"Expected token \"{expected.name if isinstance(expected, TokenType) else expected}\", got \"{got.type.name}\" (at line {got.line}, character {got.char})")
-        self._expected = expected
-        self._got = got
-
-    @property
-    def expected(self):
-        return self._expected
-
-    @property
-    def got(self):
-        return self._got
+__all__ = [
+    "Token",
+    "Tokenizer",
+    "TokenizerOptions",
+    "UnexpectedCharacterError",
+    "UnexpectedTokenError"
+]
 
 
 class Tokenizer(ITokenizer):
