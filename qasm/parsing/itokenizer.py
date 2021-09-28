@@ -58,10 +58,10 @@ class TokenType(IntEnum):
 
 
 class Token:
-    def __init__(self, line: int, char: int, type_: TokenType, value: str = None):
+    def __init__(self, line: int, char: int, type: TokenType, value: str = None):
         self._line = line
         self._char = char
-        self._type = type_
+        self._type = type
         self._value = value
 
     @property
@@ -102,11 +102,14 @@ class Token:
             return self._value != other.value or self._type != other.type
         raise TypeError(f"Incompatible types for operator (!=): {Token} and {type(other)}")
 
-    def __str__(self):
+    def __repr__(self):
         return \
-            f"Token(Type={self._type.name}, line={self._line}, char={self._char})" \
+            f"Token(type={self._type.name}, line={self._line}, char={self._char})" \
             if self._value is None else \
-            f"Token(Type={self._type.name}, value={self._value}, line={self._line}, char={self._char})"
+            f"Token(type={self._type.name}, value={self._value}, line={self._line}, char={self._char})"
+
+    def __str__(self):
+        return self._value
 
 
 class UnexpectedCharacterError(Exception):
