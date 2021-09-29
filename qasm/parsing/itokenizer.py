@@ -36,6 +36,8 @@ class TokenType(IntEnum):
     Identifier = 2
 
     LiteralIndicator_Minimum = 4
+    Literal = LiteralIndicator_Minimum
+
     Literal_Char = 4
     Literal_Int = 5
     Literal_String = 6
@@ -44,6 +46,7 @@ class TokenType(IntEnum):
     Literal_Null = 9
     Literal_Bytes = 10
     Literal_Hex = 11
+
     LiteralIndicator_Maximum = 11
 
     Comma = 20
@@ -54,6 +57,7 @@ class TokenType(IntEnum):
     Colon = 25
     Asterisk = 26
     Equal = 27
+    SemiColon = 28
 
     def is_literal(self):
         return self.LiteralIndicator_Minimum <= self <= self.LiteralIndicator_Maximum
@@ -112,6 +116,9 @@ class Token:
 
     def __str__(self):
         return self._value
+
+    def __hash__(self):
+        return hash(f"{self._type} ({self._value}) at line {self._line}, character {self._char}")
 
 
 class UnexpectedCharacterError(Exception):

@@ -18,23 +18,30 @@ __all__ = [
 
 class Tokenizer(ITokenizer):
     class TokenizerOptionsWrapper:
-        def __init__(self, tokenizer, *opt: TokenizerOptions) -> None:
+        def __init__(self, tokenizer, *opt: TokenizerOptions, default: bool = False) -> None:
             self._tokenizer = tokenizer
-            self._options = set(opt)
+            self._options = {op: default for op in opt}
 
         def options(self, value: bool) -> None:
             for option in self._options:
-                self._tokenizer[option] = value
+                self._options[option] = value
 
-        def set_options(self, *args: TokenizerOptions) -> None:
-            self._options = set(args)
+        def enabled(self):
+            self.options(True)
+            return self
+
+        def disabled(self):
+            self.options(False)
+            return self
 
         def __enter__(self):
-            self.options(True)
+            for option in self._options:
+                self._tokenizer[option] = self._options[option]
             return self._tokenizer
 
         def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-            self.options(False)
+            for option in self._options:
+                self._tokenizer[option] = not self._options[option]
             return False
 
     def __init__(self, source: str) -> None:
@@ -108,7 +115,7 @@ class Tokenizer(ITokenizer):
     def _get_line_comment(self) -> str:
         buffer = []
         try:
-            while self.next_char != '\n':
+            while self.current_char != '\n':
                 buffer.append(self.get_current_char())
             if self[TokenizerOptions.IncludeCommentEOL]:
                 buffer.append(self.get_current_char())
@@ -170,15 +177,18 @@ class Tokenizer(ITokenizer):
                     self._create_token(TokenType.WhiteSpace, self.get_current_char())
                     continue
 
-            if char == ';':
+            if char == '/' and self.next_char == '/':
                 if self[TokenizerOptions.EmitComments]:
                     if not self[TokenizerOptions.IncludeCommentCharacter]:
+                        self.get_current_char()
                         self.get_current_char()
                     return self._create_token(TokenType.Comment, self._get_line_comment())
                 else:
                     while self.get_current_char() != '\n':
                         ...
                 continue
+            if char == ';':
+                return self._create_token(TokenType.SemiColon, self.get_current_char())
             if char == '(':
                 return self._create_token(TokenType.LeftCurvyBracket, self.get_current_char())
             if char == ')':
@@ -285,6 +295,5 @@ class Tokenizer(ITokenizer):
 if __name__ == '__main__':
     with open("../../tests/hello_world.qsm") as src:
         _tokenizer = Tokenizer(src.read())
-        with _tokenizer.options() as options:
-            for token in _tokenizer:
-                print(token)
+        for token in _tokenizer:
+            print(token)
