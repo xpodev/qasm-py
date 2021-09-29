@@ -52,6 +52,7 @@ class TokenType(IntEnum):
     LeftCurvyBracket = 23
     RightCurvyBracket = 24
     Colon = 25
+    Asterisk = 26
 
     def is_literal(self):
         return self.LiteralIndicator_Minimum <= self <= self.LiteralIndicator_Maximum

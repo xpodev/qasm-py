@@ -195,6 +195,8 @@ class Tokenizer(ITokenizer):
                 return self._create_token(TokenType.Dot, self.get_current_char())
             if char == ':':
                 return self._create_token(TokenType.Colon, self.get_current_char())
+            if char == '*':
+                return self._create_token(TokenType.Asterisk, self.get_current_char())
             if char == '\'':
                 self.get_current_char()
                 char = self.get_current_char()
