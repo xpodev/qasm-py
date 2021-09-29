@@ -53,7 +53,7 @@ class Tokenizer(ITokenizer):
         self._options = {
             key: False for key in TokenizerOptions
         }
-        self._chars_allowed_at_beginning_of_identifier: Set[str] = {'_', '$', '#', '%', '!'}
+        self._chars_allowed_at_beginning_of_identifier: Set[str] = {'_', '$', '#', '%', '!', '@'}
         self._chars_allowed_in_identifier: Set[str] = self._chars_allowed_at_beginning_of_identifier
 
     @property
