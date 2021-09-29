@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from qasm.parsing.asm_token import Token
+from qasm.parsing.itokenizer import Token
 
 
 class Node:

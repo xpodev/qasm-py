@@ -3,7 +3,7 @@ from typing import Iterable, Callable, Dict, Union
 
 from qasm.parsing.iparser import IParser
 from qasm.parsing.itokenizer import ITokenizer, TokenizerOptions
-from qasm.parsing.nodes import Node,\
+from qasm.parsing.old.nodes import Node,\
     InstructionNode, DirectiveNode, FunctionDefinitionNode,\
     SectionNode, LabelNode, VariableDefinitionNode, ParameterNode, \
     TypeDefinitionNode
