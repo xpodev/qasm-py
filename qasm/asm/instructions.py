@@ -87,6 +87,8 @@ def setup():
     add(InstructionDefinition("new", 23, TypeSize, Int))
     add(InstructionDefinition("free", 24))
 
+    add(InstructionDefinition("dup", 25))
+
     add(InstructionDefinition("exit", -1))
 
     # add(InstructionDefinition("dlog", -2))
