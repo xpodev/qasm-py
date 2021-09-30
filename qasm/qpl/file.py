@@ -1,7 +1,8 @@
-from struct import Struct
-from enum import IntEnum
-from typing import Dict, BinaryIO, Union
+import sys
+from enum import IntFlag
 from io import BytesIO
+from struct import Struct
+from typing import Dict, BinaryIO, Union, Optional, SupportsInt
 
 
 __all__ = [
@@ -19,19 +20,64 @@ class FileFormatError(Exception):
     ...
 
 
-class QPLFlags(IntEnum):
-    EntryPoint = 1
-    Exports = 2
+class QPLFlags(IntFlag):
+    HasEntryPoint = 1 << 0
+    HasExports = 1 << 1
+    RelativeAddressing = 1 << 2
 
     def __getitem__(self, item):
         if type(item) is str:
             return type(self)[item]
 
 
-class Architecture(IntEnum):
-    Unknown = 0
-    X86_32 = 1
-    X86_64 = 2
+class ArchitectureInfo:
+    ARCHITECTURE_MASK = 0x7F
+    BYTE_ORDER_MASK = 0x80
+
+    NATIVE_SIZE = Struct("P").size
+
+    def __init__(self, arch: SupportsInt, little_endian: Optional[bool] = None) -> None:
+        arch = int(arch)
+        if not isinstance(arch, int):
+            raise TypeError(f"arch must be an {int.__name__}, not a {type(arch).__name__}")
+        if arch == 0:
+            raise ValueError(f"arch must not be 0")
+        if little_endian:
+            if not isinstance(little_endian, bool):
+                raise TypeError(f"little_endian must be a {bool.__name__}, not a {type(little_endian).__name__}")
+            self._system_word_size = arch
+            self._is_little_endian = little_endian
+        else:
+            # MSB indicates byte order (0 = little-endian, 1 = big-endian)
+            self._system_word_size = arch & self.ARCHITECTURE_MASK
+            self._is_little_endian = (arch & self.BYTE_ORDER_MASK) == 0
+        self._architecture = 8 * self._system_word_size
+
+    @property
+    def is_little_endian(self) -> bool:
+        return self._is_little_endian
+
+    @property
+    def is_big_endian(self) -> bool:
+        return not self._is_little_endian
+
+    @property
+    def system_word_size(self) -> int:
+        return self._system_word_size
+
+    @property
+    def architecture(self) -> int:
+        return self._architecture
+
+    @classmethod
+    def get_native_architecture_info(cls):
+        return cls(cls.NATIVE_SIZE, sys.byteorder == "little")
+
+    def __int__(self) -> int:
+        return (self.is_big_endian & self.BYTE_ORDER_MASK) | (self._system_word_size & self.ARCHITECTURE_MASK)
+
+    def __str__(self) -> str:
+        return f"{self._architecture} bit, {'big' if self.is_big_endian else 'little'}-endian"
 
 
 class Header:
@@ -39,42 +85,46 @@ class Header:
 
     Signature  (4 bytes) - must be "QPL\\\\0"
 
+    -- 4 byte mark (4 bytes)
+
     Flags (1 byte)
 
     Architecture (1 byte)
 
-    RESERVED (2 bytes)
+    Number of Section Entries (1 byte)
 
-    Number of Sections (4 bytes)
+    RESERVED (1 byte)
 
-    Section Table Offset (4 bytes)
+    -- 4 byte mark (8 bytes)
+
+    Version.Major (2 bytes)
+
+    Version.Minor (2 bytes)
+
+    -- 4 byte mark (12 bytes)
+
+    RESERVED (4 bytes)
+
+    -- 4 byte mark (total 16 bytes)
 
     for a total of a 16-byte header"""
-    FORMAT = "4s b b h i i"
+    FORMAT = "4s b b b x h h 4x"
     STRUCT = Struct(FORMAT)
     SIGNATURE = b"QPL\0"
 
-    def __init__(self, flags: Union[QPLFlags, int] = 0, architecture: Union[int, Architecture] = 0, _: int = 0, num_sections: int = 0, section_table_offset: int = 0):
-        self._flags = flags
-        self._architecture = Architecture(architecture)
+    def __init__(self, flags: Union[QPLFlags, int], architecture: Union[int, ArchitectureInfo], num_sections: int, version_major: int, version_minor: int):
+        self._flags = QPLFlags(flags)
+        self._architecture = ArchitectureInfo(architecture)
         self._num_sections = num_sections
-        self._section_table_offset = section_table_offset
+        self._version = version_major, version_minor
 
     @property
     def flags(self) -> int:
         return self._flags
 
-    @flags.setter
-    def flags(self, flags: QPLFlags):
-        self._flags = flags
-
     @property
     def architecture(self):
         return self._architecture
-
-    @architecture.setter
-    def architecture(self, arch: Architecture):
-        self._architecture = arch
 
     def has_flag(self, flag: QPLFlags):
         return bool(self._flags & flag)
@@ -83,20 +133,12 @@ class Header:
     def num_sections(self):
         return self._num_sections
 
-    @num_sections.setter
-    def num_sections(self, value: int):
-        self._num_sections = value
-
     @property
-    def section_table_offset(self):
-        return self._section_table_offset
-
-    @section_table_offset.setter
-    def section_table_offset(self, value: int):
-        self._section_table_offset = value
+    def version(self):
+        return self._version
 
     def to_bytes(self):
-        return self.STRUCT.pack(self.SIGNATURE, self._flags, self._architecture, 0, self._num_sections, self._section_table_offset)
+        return self.STRUCT.pack(self.SIGNATURE, self._flags, int(self._architecture), self._num_sections, *self._version)
 
     @classmethod
     def from_bytes(cls, data: bytes):
@@ -115,10 +157,10 @@ class Header:
         return '\n'.join((
             "[QPL Header]",
             f"Flags: {self.flags}",
-            f"Architecture: {self._architecture.name}",
+            f"Architecture: {self._architecture}",
             '\n'.join(map(lambda flag: f"[Flag] {flag.name}: {self.has_flag(flag)}", QPLFlags)),
             f"Section Count: {self.num_sections}",
-            f"Section Table Address: {self.section_table_offset}"
+            f"Language Version: {'.'.join(map(str, self._version))}"
         ))
 
 
@@ -210,8 +252,8 @@ class SectionTable:
 
 
 class QPLFile:
-    def __init__(self, header: Union[Header, QPLFlags]):
-        self._header = header if isinstance(header, Header) else Header(header)
+    def __init__(self, header: Optional[Header] = None):
+        self._header = header
         self._section_table = SectionTable()
         self._sections: Dict[str, bytes] = {}
 
@@ -252,11 +294,10 @@ class QPLFile:
             self._section_table.set_entry(entry)
             offset += entry.size
 
-    def to_bytes(self):
+    def to_bytes(self, *header_options):
         data = bytearray()
 
-        self._header.num_sections = len(self._sections)
-        self._header.section_table_offset = Header.STRUCT.size
+        self._header = Header(*header_options, len(self._sections), 1, 0)
         data.extend(self._header.to_bytes())
 
         self.calculate_section_offsets()
@@ -269,12 +310,12 @@ class QPLFile:
 
         return bytes(data)
 
-    def write(self, path: str):
+    def write(self, path: str, *header_options):
         with open(path, "wb") as dst:
-            self.write_to(dst)
+            self.write_to(dst, *header_options)
 
-    def write_to(self, io: BinaryIO):
-        io.write(self.to_bytes())
+    def write_to(self, io: BinaryIO, *header_options):
+        io.write(self.to_bytes(*header_options))
 
     @classmethod
     def from_bytes(cls, data: bytes):
@@ -311,7 +352,8 @@ def read_file(path: str):
 
 
 if __name__ == '__main__':
-    with open("../../tests/hello_world.qpl", "rb") as src:
+    print("Native Architecture Info:", ArchitectureInfo.get_native_architecture_info(), '\n')
+    with open("../../tests/test2.qpl", "rb") as src:
         qpl_file = QPLFile.from_binary_io(src)
         print(qpl_file)
         # print()

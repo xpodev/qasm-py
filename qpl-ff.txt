@@ -1,0 +1,40 @@
+file.qsm -> [Assemlber] -> Object File(s) (.o)-> [Linker] -> file.exe/file.dll/file.qpl/file.lib/file.qsl/file.qdl
+
+
+QPL Standard Header (16 bytes):
+the header should always be in little-endian
+
+QPL\0 (4 bytes) - signature
+-- 4 byte mark (4)
+Flags (1 byte) - 8 bit flags:
+	- 1: HasEntryPoint - signifies that the file can be ran as an executable. if this is 0, this file won't be ran by the standard runtime.
+	- 2: HasExports - signifies that the file has an export table. if this is set to 0, this file won't be imported by the standard runtime or by the assembler.
+	- 3: AddressingMode - 0 for absolute (i.e. either relative to base of file data or to some defined base address), 1 for relative (i.e. relative to IP)
+ArchitectureInfo (1 byte) - file architecture so the runtime knows what options to use for native size (32 or 64) and order (little or big endian)
+	- 0b01111111 mask for architecture (the log2(bitwidth)) so Architecture = 2 << (ArchitectureInfo & (1 << 7 - 1 (or 0x7F))
+	- 0b10000000 mask for endianess (0 for little, 1 for big) so IsLittleEndian = ArchitectueInfo > 0 (note that a value of 0 is invalid)
+SectionCount (1 byte) - number of sections in the section table
+PADDING (1 byte)
+-- 4 byte mark (8)
+LanguageVersion.Major (2 bytes)
+LanguageVersion.Minor (2 bytes)
+-- 4 byte mark (12)
+PADDING (4 bytes)
+-- 4 byte mark (16)
+
+
+QPL Version 1 Sub Header:
+EntryPoint (Native Size) - the address of the entry point relative to file data base address (which is after the header)
+
+
+QPL V2 Sub Header:
+...
+
+
+Section table is always after the sub header
+
+standard section:
+data
+code
+exports
+
