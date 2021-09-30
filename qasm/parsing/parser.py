@@ -1,11 +1,11 @@
 from typing import Union, List, Optional
 
 try:
-    from .iparser import IParser
+    from .iparser import *
     from .document import *
     from .itokenizer import *
 except ImportError:
-    from qasm.parsing.iparser import IParser
+    from qasm.parsing.iparser import *
     from qasm.parsing.document import *
     from qasm.parsing.itokenizer import *
 
@@ -111,7 +111,10 @@ class Parser(IParser):
 
     def _get_function_definition(self, tokenizer: ITokenizer) -> FunctionDefinition:
         declaration = self._get_function_signature(tokenizer)
-        modifiers = self._get_modifiers(tokenizer)
+        if self[ParserOptions.AllowFunctionModifiers]:
+            modifiers = self._get_modifiers(tokenizer)
+        else:
+            modifiers = []
         func = FunctionDefinition(declaration.keyword, declaration.name, declaration.parameters, declaration.return_type_name, modifiers)
         tokenizer.eat(TokenType.LeftCurlyBracket)
         while not self._try_get_token(tokenizer, TokenType.RightCurlyBracket):
@@ -133,7 +136,10 @@ class Parser(IParser):
         typ = self._get_type(tokenizer)
         if self._try_get_token(tokenizer, TokenType.SemiColon):
             return VariableDeclaration(keyword, name, typ)
-        modifiers = self._get_modifiers(tokenizer)
+        if self[ParserOptions.AllowVariableModifiers]:
+            modifiers = self._get_modifiers(tokenizer)
+        else:
+            modifiers = []
         tokenizer.eat(TokenType.Equal)
         value = self._get_literal(tokenizer)
         tokenizer.eat(TokenType.SemiColon)
@@ -163,25 +169,26 @@ class Parser(IParser):
         document = Document()
         tokenizer[TokenizerOptions.EmitComments] = False
         tokenizer.advance()
-        while tokenizer.has_tokens:
-            token = tokenizer.token
-            if token == FunctionDefinition.declaration_keyword:
-                document.add_function(self._get_function_definition(tokenizer))
-            elif token == VariableDefinition.declaration_keyword:
-                document.add_global(self._get_variable_declaration(tokenizer))
-            elif token == TypeDefinition.declaration_keyword:
-                document.add_type(self._get_type_definition(tokenizer))
-            elif token == ImportStatement.declaration_keyword:
-                document.add_import(self._get_import_statement(tokenizer))
-            else:
-                raise UnexpectedTokenError(" or ".join(
-                    [
-                        VariableDefinition.declaration_keyword,
-                        FunctionDefinition.declaration_keyword,
-                        TypeDefinition.declaration_keyword,
-                        ImportStatement.declaration_keyword
-                    ]
-                ), token)
+        with self.options(ParserOptions.AllowFunctionModifiers, ParserOptions.AllowVariableModifiers).enabled():
+            while tokenizer.has_tokens:
+                token = tokenizer.token
+                if token == FunctionDefinition.declaration_keyword:
+                    document.add_function(self._get_function_definition(tokenizer))
+                elif token == VariableDefinition.declaration_keyword:
+                    document.add_global(self._get_variable_declaration(tokenizer))
+                elif token == TypeDefinition.declaration_keyword:
+                    document.add_type(self._get_type_definition(tokenizer))
+                elif token == ImportStatement.declaration_keyword:
+                    document.add_import(self._get_import_statement(tokenizer))
+                else:
+                    raise UnexpectedTokenError(" or ".join(
+                        [
+                            VariableDefinition.declaration_keyword,
+                            FunctionDefinition.declaration_keyword,
+                            TypeDefinition.declaration_keyword,
+                            ImportStatement.declaration_keyword
+                        ]
+                    ), token)
 
         return document
 

@@ -9,7 +9,6 @@ __all__ = [
 
 class IConfigurable:
     _OptionType = None
-    _OptionTypeHint = Type[_OptionType]
 
     class ConfigurationOptionWrapper:
         def __init__(self, owner, *options: "IConfigurable._OptionType", default: bool = False):
@@ -54,7 +53,7 @@ class IConfigurable:
             key: False for key in self._OptionType
         }
 
-    def options(self, *options: _OptionTypeHint) -> Union[Dict[_OptionTypeHint, bool], ConfigurationOptionWrapper]:
+    def options(self, *options: Type[_OptionType]):
         if not len(options):
             return self._options
         return self.ConfigurationOptionWrapper(self, *options)
@@ -64,6 +63,9 @@ class IConfigurable:
             raise TypeError(f"item must be a type deriving from {Enum}")
         cls._OptionType = item
         return cls
+
+    def __init_subclass__(cls):
+        setattr(cls, "_OptionType", cls._OptionType)
 
     def __getitem__(self, item: _OptionType):
         return self._options[item]

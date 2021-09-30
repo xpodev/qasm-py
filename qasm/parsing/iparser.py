@@ -12,7 +12,8 @@ except ImportError:
 
 
 __all__ = [
-    "IParser"
+    "IParser",
+    "ParserOptions"
 ]
 
 
