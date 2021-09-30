@@ -2,20 +2,17 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Iterable, Dict, Union, List, Set, Collection
 
-from qasm.parsing.asm_token import Token
-from qasm.parsing.nodes import Node, SectionNode, InstructionNode, LabelNode, FunctionDefinitionNode, VariableDefinitionNode, TypeDefinitionNode
-
-from qasm.asm.bin_types import *
-from qasm.asm.label import *
-from qasm.asm.function import *
-from qasm.asm.instruction import *
-from qasm.asm.instructions import *
-from qasm.parsing.parser import default_parser, bin_type_from_token_type
-from qasm.parsing.tokenizer import Tokenizer
-from qasm.parsing.tokens import TokenType
-from qasm.qpl.file import QPLFile, QPLFlags, read_file
+from qasm.asm.old.bin_types import *
+from qasm.asm.old.function import *
+from qasm.asm.old.instruction import *
+from qasm.asm.old.instructions import *
+from qasm.asm.old.label import *
+from qasm.asm.old.type import TypeDefinition
+from qasm.parsing.old.nodes import Node, SectionNode, InstructionNode, LabelNode, FunctionDefinitionNode, VariableDefinitionNode, TypeDefinitionNode
+from qasm.parsing.old.parser import default_parser, bin_type_from_token_type
+from qasm.parsing.tokenizer import Tokenizer, Token, TokenType
 from qasm.qpl.exports import ExportTable
-from qasm.asm.type import TypeDefinition
+from qasm.qpl.file import QPLFile, QPLFlags, read_file
 
 
 class UnknownInstructionError(Exception):
@@ -217,32 +214,32 @@ class CodeSection(SizedSection["code"]):
             for pt, arg in zip(inst.types, instruction.arguments):
                 if pt is Type:
                     pt = Int8
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[arg.value.value])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[arg.value.value])
                     arg = InstructionNode.InstructionArgument(tkn, pt.name)
                 elif pt is TypeSize:
                     pt = Int
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, assembler.get_type(arg.value.value).size)
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, assembler.get_type(arg.value.value).size)
                     arg = InstructionNode.InstructionArgument(tkn, pt.name)
                 if isinstance(pt, AnyOf):
                     if arg.type is None:
-                        raise ValueError(f"One of {tuple(map(str, pt.types))} must be supplied (error at line {arg.value.line}, char {arg.value.current_char})")
+                        raise ValueError(f"One of {tuple(map(str, pt.types))} must be supplied (error at line {arg.value.line}, char {arg.value.char})")
                     pt = TYPE_TABLE[arg.type]
                     types_.append(Int8)
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
                 if pt is Variable:
                     pt = assembler.get_type(arg.type) if arg.type else bin_type_from_token_type(arg.value.type)
                     if isinstance(pt, TypeDefinition):
                         pt = Pointer[pt]
                     types_.append(Int8)
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
                 if pt is Local:
                     name = arg.value.value
                     local = assembler.current_function.locals[name]
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[local.type.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, assembler.get_type(local.type.name).index())
                     args.append(InstructionNode.InstructionArgument(tkn))
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, local.index)
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, local.index)
                     args.append(InstructionNode.InstructionArgument(tkn))
                     types_.append(Int8)
                     types_.append(Local)
@@ -250,9 +247,9 @@ class CodeSection(SizedSection["code"]):
                 elif pt is Argument:
                     name = arg.value.value
                     param = assembler.current_function.parameters[name]
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[param.type.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, assembler.get_type(param.type.name).index())
                     args.append(InstructionNode.InstructionArgument(tkn))
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, param.index)
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, param.index)
                     args.append(InstructionNode.InstructionArgument(tkn))
                     types_.append(Int8)
                     types_.append(Argument)
@@ -394,7 +391,9 @@ class ImportSection(SizedSection["imports"]):
             if func_name in self._all_imports:
                 raise ValueError(f"Function \"{func_name}\" was already imported. Try importing it with another name.")
             func = self._current_export_table.get_export(func_name)
-            assembler.add_label(FunctionReference(import_name, func.offset, func.return_type, func.parameter_types, func.num_locals))
+            f_reference = FunctionReference(import_name, func.offset, func.return_type, func.parameter_types, func.num_locals)
+            print(f"Importing function: {func_name} as {import_name} at {f_reference.offset} with {func.num_locals} locals")
+            assembler.add_label(f_reference)
 
     def to_bytes(self, assembler) -> bytes:
         return bytes(self._data)
@@ -476,8 +475,8 @@ class Assembler:
     def current_function(self):
         return self._current_function
 
-    def assemble(self, nodes: Iterable[Node], flags: QPLFlags) -> QPLFile:
-        file = QPLFile(flags)
+    def assemble(self, nodes: Iterable[Node]) -> QPLFile:
+        file = QPLFile()
 
         for node in nodes:
             if isinstance(node, SectionNode):
@@ -511,9 +510,9 @@ class Assembler:
                 self._current_function = Function(
                     node.name,
                     self._code.size,
-                    TYPE_TABLE[node.return_type],
+                    self.get_type(node.return_type),
                     {
-                        p.name: Parameter(p.name, TYPE_TABLE[p.type], i) for i, p in enumerate(node.parameters)
+                        p.name: Parameter(p.name, self.get_type(p.type), i) for i, p in enumerate(node.parameters)
                     },
                     {},
                     (),
@@ -566,4 +565,4 @@ if __name__ == '__main__':
         tokenizer = Tokenizer(src.read())
         parser = default_parser(tokenizer)
         assembler = Assembler()
-        assembler.assemble(parser.parse(), QPLFlags.EntryPoint | QPLFlags.Exports).write(dst_path)
+        assembler.assemble(parser.parse(), QPLFlags.HasEntryPoint | QPLFlags.HasExports).write(dst_path)
