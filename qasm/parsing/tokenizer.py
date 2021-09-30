@@ -17,42 +17,13 @@ __all__ = [
 
 
 class Tokenizer(ITokenizer):
-    class TokenizerOptionsWrapper:
-        def __init__(self, tokenizer, *opt: TokenizerOptions, default: bool = False) -> None:
-            self._tokenizer = tokenizer
-            self._options = {op: default for op in opt}
-
-        def options(self, value: bool) -> None:
-            for option in self._options:
-                self._options[option] = value
-
-        def enabled(self):
-            self.options(True)
-            return self
-
-        def disabled(self):
-            self.options(False)
-            return self
-
-        def __enter__(self):
-            for option in self._options:
-                self._tokenizer[option] = self._options[option]
-            return self._tokenizer
-
-        def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-            for option in self._options:
-                self._tokenizer[option] = not self._options[option]
-            return False
-
     def __init__(self, source: str) -> None:
+        super().__init__()
         self._source = source
         self._token = None
         self._current = 0
         self._line = self._last_line = 1
         self._char = self._last_char = 1
-        self._options = {
-            key: False for key in TokenizerOptions
-        }
         self._chars_allowed_at_beginning_of_identifier: Set[str] = {'_', '$', '#', '%', '!', '@'}
         self._chars_allowed_in_identifier: Set[str] = self._chars_allowed_at_beginning_of_identifier
 
@@ -261,9 +232,6 @@ class Tokenizer(ITokenizer):
         self._current += 1
         return char
 
-    def options(self, *args: TokenizerOptions) -> TokenizerOptionsWrapper:
-        return self.TokenizerOptionsWrapper(self, *args)
-
     @staticmethod
     def _get_special_character(c: str) -> Optional[str]:
         if c == 'r':
@@ -279,21 +247,14 @@ class Tokenizer(ITokenizer):
         else:
             return None
 
-    def __getitem__(self, item: TokenizerOptions) -> bool:
-        return self._options[item]
-
     def __iter__(self) -> Iterable[Token]:
         while self.has_tokens:
             yield self.advance()
-
-    def __setitem__(self, key: TokenizerOptions, value: bool) -> None:
-        if type(value) is not bool:
-            raise TypeError(f"value must be of type {bool.__name__}")
-        self._options[key] = value
 
 
 if __name__ == '__main__':
     with open("../../tests/hello_world.qsm") as src:
         _tokenizer = Tokenizer(src.read())
-        for token in _tokenizer:
-            print(token)
+        with _tokenizer.options(TokenizerOptions.EmitComments).enabled():
+            for token in _tokenizer:
+                print(token)
