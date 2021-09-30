@@ -1,7 +1,7 @@
 from typing import Iterable, Optional, Dict
 
-from qasm.asm.old.bin_types import TypeMeta, Type, Pointer
-from qasm.asm.old.label import Label
+from qasm.asm.bin_types import TypeMeta, Type
+from qasm.asm.label import Label
 
 
 class FieldDefinition(Label):
@@ -37,9 +37,6 @@ class TypeDefinition(Type, Label):
     @property
     def size(self):
         return self._size
-
-    def index(self):
-        return Pointer.index()
 
     def add_field(self, name: str, typ: TypeMeta) -> FieldDefinition:
         if name in self._fields:

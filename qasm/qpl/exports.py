@@ -2,9 +2,9 @@ from io import BytesIO
 from struct import pack
 from typing import BinaryIO, Collection, Dict
 
-from qasm.asm.bin_types import Void, TYPES, TypeMeta, Int
+from qasm.asm.old.bin_types import Void, TYPES, TypeMeta, Int
 
-from qasm.asm.function import FunctionReference
+from qasm.asm.old.function import FunctionReference
 
 
 __all__ = [
@@ -24,7 +24,7 @@ class ExportTableEntry(FunctionReference):
             self._return_type.index(),
             *tuple(map(lambda x: x.index(), self.parameter_types)),
             Void.index(),
-            self._num_locals
+            self.num_locals
         )
 
     @classmethod

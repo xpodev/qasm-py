@@ -1,7 +1,7 @@
 from typing import Iterable
 
-from qasm.asm.old.instructions import InstructionDefinition
-from qasm.asm.old.bin_types import TypeMeta
+from qasm.asm.instructions import InstructionDefinition
+from qasm.asm.bin_types import TypeMeta
 
 
 __all__ = [

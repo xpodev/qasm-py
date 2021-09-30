@@ -1,9 +1,9 @@
 from typing import Iterable, Dict, Collection
 from functools import wraps
 
-from qasm.asm.old.bin_types import TypeMeta
-from qasm.asm.old.instruction import Instruction
-from qasm.asm.old.label import Label
+from qasm.asm.bin_types import TypeMeta
+from qasm.asm.instruction import Instruction
+from qasm.asm.label import Label
 
 
 __all__ = [

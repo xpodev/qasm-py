@@ -8,8 +8,7 @@ from qasm.parsing.old.nodes import Node,\
     SectionNode, LabelNode, VariableDefinitionNode, ParameterNode, \
     TypeDefinitionNode
 from qasm.parsing.itokenizer import Token, TokenType
-from qasm.asm import bin_types as bt
-
+from qasm.asm.old import bin_types as bt
 
 DirectiveHandler = Callable[["Parser", str], DirectiveNode]
 InstructionHandler = Callable[["Parser", str], InstructionNode]

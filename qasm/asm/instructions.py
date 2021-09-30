@@ -1,7 +1,7 @@
 import sys
 from typing import Dict
 
-from qasm.asm.old.bin_types import *
+from qasm.asm.bin_types import *
 
 
 __all__ = [
