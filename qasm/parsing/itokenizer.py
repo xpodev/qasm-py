@@ -2,6 +2,11 @@ from abc import ABC, abstractmethod
 from enum import IntEnum
 from typing import Iterable, Optional, Union
 
+try:
+    from ..iconfigurable import IConfigurable
+except ImportError:
+    from qasm.iconfigurable import IConfigurable
+
 
 __all__ = [
     "ITokenizer",
@@ -198,7 +203,7 @@ class UnexpectedTokenError(Exception):
         return self._got
 
 
-class ITokenizer(ABC):
+class ITokenizer(ABC, IConfigurable[TokenizerOptions]):
     """
     An interface for any object that can supply tokens to an object of type `IParser`
     """
@@ -236,25 +241,7 @@ class ITokenizer(ABC):
         """
 
     @abstractmethod
-    def __getitem__(self, item: TokenizerOptions) -> bool:
-        """
-        Get the current status of an option for this tokenizer.
-
-        :param item: The name of the option.
-        :return: The status of the option.
-        """
-
-    @abstractmethod
     def __iter__(self) -> Iterable[Token]:
         """
         :return: An iterable of all the tokens in this tokenizer.
-        """
-
-    @abstractmethod
-    def __setitem__(self, key: TokenizerOptions, value: bool) -> None:
-        """
-        Sets the current status of an option for this tokenizer.
-
-        :param key: The name of the option to set.
-        :param value: The new status of the option to set.
         """
