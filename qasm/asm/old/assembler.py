@@ -2,20 +2,19 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Iterable, Dict, Union, List, Set, Collection
 
-from qasm.parsing.asm_token import Token
-from qasm.parsing.nodes import Node, SectionNode, InstructionNode, LabelNode, FunctionDefinitionNode, VariableDefinitionNode, TypeDefinitionNode
+from qasm.parsing.old.nodes import Node, SectionNode, InstructionNode, LabelNode, FunctionDefinitionNode, VariableDefinitionNode, TypeDefinitionNode
 
-from qasm.asm.bin_types import *
-from qasm.asm.label import *
-from qasm.asm.function import *
-from qasm.asm.instruction import *
-from qasm.asm.instructions import *
-from qasm.parsing.parser import default_parser, bin_type_from_token_type
+from qasm.asm.old.bin_types import *
+from qasm.asm.old.label import *
+from qasm.asm.old.function import *
+from qasm.asm.old.instruction import *
+from qasm.asm.old.instructions import *
+from qasm.parsing.old.parser import default_parser, bin_type_from_token_type
 from qasm.parsing.tokenizer import Tokenizer
-from qasm.parsing.tokens import TokenType
+from qasm.parsing.itokenizer import TokenType, Token
 from qasm.qpl.file import QPLFile, QPLFlags, read_file
 from qasm.qpl.exports import ExportTable
-from qasm.asm.type import TypeDefinition
+from qasm.asm.old.type import TypeDefinition
 
 
 class UnknownInstructionError(Exception):
