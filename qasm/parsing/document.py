@@ -14,6 +14,7 @@ def assert_type(item, typ: type, parameter_name: str = "item") -> None:
 
 __all__ = [
     "Document",
+    "FullyQualifiedName",
     "FunctionDeclaration",
     "FunctionDefinition",
     "ImportDeclaration",
@@ -37,8 +38,32 @@ class ImportType(Enum):
     Variable = "variable"
 
 
+class FullyQualifiedName:
+    def __init__(self, *parts: Token):
+        *parts, self._name = parts
+        if len(parts) == 0:
+            self._owner = None
+        else:
+            self._owner = FullyQualifiedName(*parts)
+
+    @property
+    def name(self) -> Token:
+        return self._name
+
+    @property
+    def owner_fqn(self) -> Optional["FullyQualifiedName"]:
+        return self._owner
+
+    @property
+    def parts(self) -> Tuple[Token, ...]:
+        return (*(self._owner.parts if self._owner else ()), self._name)
+
+    def __str__(self):
+        return f"{str(self._owner) + '.' if self._owner is not None else ''}{self._name.value}"
+
+
 class Declaration:
-    def __init__(self, keyword: Token, name: Token) -> None:
+    def __init__(self, keyword: Token, name: FullyQualifiedName) -> None:
         self._keyword = keyword
         self._name = name
 
@@ -47,12 +72,12 @@ class Declaration:
         return self._keyword
 
     @property
-    def name(self) -> Token:
+    def name(self) -> FullyQualifiedName:
         return self._name
 
 
 class ImportDeclaration(Declaration):
-    def __init__(self, keyword: Token, name: Token, typ: ImportType) -> None:
+    def __init__(self, keyword: Token, name: FullyQualifiedName, typ: ImportType) -> None:
         super().__init__(keyword, name)
         self._import_type = typ
 
@@ -69,6 +94,9 @@ class Type:
     def name(self) -> Token:
         return self._name
 
+    def __str__(self):
+        return self._name.value
+
 
 class Pointer(Type):
     def __init__(self, typ: Type, specifier: Token):
@@ -78,6 +106,9 @@ class Pointer(Type):
     @property
     def specifier(self):
         return self._specifier
+
+    def __str__(self):
+        return f"{super().__str__()}{self._specifier.value}"
 
 
 class Parameter:
@@ -90,14 +121,14 @@ class Parameter:
         return self._name
 
     @property
-    def type_name(self) -> Type:
+    def type(self) -> Type:
         return self._type
 
 
 class FunctionDeclaration(Declaration):
     declaration_keyword = "func"
 
-    def __init__(self, keyword: Token, name: Token, parameters: Iterable[Parameter], return_type_name: Type) -> None:
+    def __init__(self, keyword: Token, name: FullyQualifiedName, parameters: Iterable[Parameter], return_type_name: Type) -> None:
         super().__init__(keyword, name)
         self._parameters = tuple(parameters)
         self._return_type = return_type_name
@@ -114,14 +145,14 @@ class FunctionDeclaration(Declaration):
 class TypeDeclaration(Declaration):
     declaration_keyword = "type"
 
-    def __init__(self, keyword: Token, name: Token):
+    def __init__(self, keyword: Token, name: FullyQualifiedName):
         super().__init__(keyword, name)
 
 
 class VariableDeclaration(Declaration):
     declaration_keyword = "var"
 
-    def __init__(self, keyword: Token, name: Token, type_name: Type) -> None:
+    def __init__(self, keyword: Token, name: FullyQualifiedName, type_name: Type) -> None:
         super().__init__(keyword, name)
         self._type = type_name
 
@@ -151,6 +182,10 @@ class ImportStatement:
     def modifiers(self) -> FrozenSet[Token]:
         return self._modifiers
 
+    @property
+    def imports(self) -> List[ImportDeclaration]:
+        return self._imports
+
     def add_import(self, import_: ImportDeclaration) -> None:
         self._imports.append(import_)
 
@@ -170,12 +205,12 @@ class InstructionArgument:
 
 
 class Instruction:
-    def __init__(self, name: Token, arguments: Iterable[InstructionArgument]) -> None:
+    def __init__(self, name: FullyQualifiedName, arguments: Iterable[InstructionArgument]) -> None:
         self._name = name
         self._arguments = tuple(arguments)
 
     @property
-    def name(self) -> Token:
+    def name(self) -> FullyQualifiedName:
         return self._name
 
     @property
@@ -184,7 +219,7 @@ class Instruction:
 
 
 class FunctionDefinition(FunctionDeclaration):
-    def __init__(self, keyword: Token, name: Token, parameters: Iterable[Parameter], return_type_name: Type, modifiers: Iterable[Token]) -> None:
+    def __init__(self, keyword: Token, name: FullyQualifiedName, parameters: Iterable[Parameter], return_type_name: Type, modifiers: Iterable[Token]) -> None:
         super().__init__(keyword, name, parameters, return_type_name)
         self._modifiers = frozenset(modifiers)
         self._body: List[Instruction] = []
@@ -212,7 +247,7 @@ class FunctionDefinition(FunctionDeclaration):
 
 
 class TypeDefinition(TypeDeclaration):
-    def __init__(self, keyword: Token, name: Token, modifiers: Iterable[Token]):
+    def __init__(self, keyword: Token, name: FullyQualifiedName, modifiers: Iterable[Token]):
         super().__init__(keyword, name)
         self._modifiers = frozenset(modifiers)
         self._fields: List[VariableDeclaration] = []
@@ -240,7 +275,7 @@ class TypeDefinition(TypeDeclaration):
 
 
 class VariableDefinition(VariableDeclaration):
-    def __init__(self, keyword: Token, name: Token, type_name: Type, modifiers: Iterable[Token], value: Token) -> None:
+    def __init__(self, keyword: Token, name: FullyQualifiedName, type_name: Type, modifiers: Iterable[Token], value: Token) -> None:
         super().__init__(keyword, name, type_name)
         self._modifiers = frozenset(modifiers)
         self._value = value

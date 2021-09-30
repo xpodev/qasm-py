@@ -10,8 +10,12 @@ type string export {
     var length: int;
     var ptr: int8*;
 
-    func string(int8* s): string export {
+    func string(string* this, int8* s): string export {
+        stack.push s
+        call str_length
+        pop this.length
 
+        push this.length
     }
 }
 
