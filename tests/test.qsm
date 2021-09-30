@@ -1,0 +1,73 @@
+.section config
+    entry _entry
+
+
+.section data
+.label STR_1
+db "Hello, ", int8 0
+
+.label STR_2
+db "World!", int8 0
+
+.label TMP_0
+db int64 0
+
+
+.section types
+.type string:
+    field int length
+    field str ptr
+
+
+.section imports
+    load "tests/string.qpl"
+    import strlen
+    import concat
+    import string
+    import print_string
+    // import copy_memory
+
+    load "tests/stdlib.qpl"
+    import copy_memory
+
+
+.section code
+
+.func int _entry():
+    call main
+    exit
+
+
+.func int main():
+    // push STR_1
+    // dlog str
+
+    // push STR_2
+    // dlog str
+
+    push STR_1
+    call strlen
+    dlog int
+
+    push STR_2
+    call strlen
+    dlog int
+
+    push STR_1
+    call string
+    dup
+    call print_string
+    pop int 0
+
+    push STR_2
+    call string
+    dup
+    call print_string
+    pop int 0
+
+    call concat
+    call print_string
+    pop int 0
+
+    push int 0
+    ret

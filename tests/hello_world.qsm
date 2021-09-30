@@ -1,21 +1,39 @@
-.section config
-    entry _entry
+import qpl file "lib.qpl" {
+    func get_x
+    func c_func
+    type MyType
+}
 
+// line comment
 
-.section data
-.label STR_HelloWorld
-db "Hello, World!", int8 0
-db 0.0
+type string export {
+    var length: int;
+    var ptr: int8*;
 
+    func string(int8* s): string export {
 
-.section code
-.func int _entry():
-    call main
-    exit
+    }
+}
 
-.func int main():
+var STR_HelloWorld: str export = "Hello, World!";
+
+func add(int a, int b): int export {
+    push a
+    push b
+    add
+    ret
+}
+
+func set_mem(int* ptr, int value): void {
+    pop_mem ptr: int*, value: int
+}
+
+func main(): int {
+    var return_value: int = 0;
+
     push STR_HelloWorld
     dlog str
 
-    push 0
+    push return_value
     ret
+}

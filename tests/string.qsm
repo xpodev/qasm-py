@@ -1,0 +1,192 @@
+.section imports
+    load "tests/stdlib.qpl"
+    import copy_memory
+
+
+.section types
+
+.type string:
+    field int length
+    field raw ptr
+
+
+.section code
+
+
+.func void print_string(string s) export:
+    push arg s
+    push string.ptr
+    add int, int
+    push_mem int, ptr
+    dlog str
+
+    ret
+
+
+.func string string(str s) export:
+    .var string result
+
+    new string, 1
+    pop local result
+
+    push local result
+    push string.length
+    add int, int
+    push arg s
+    call strlen
+    pop_mem int, ptr
+
+    push local result
+    push string.ptr
+    add int, int
+    push local result
+    push string.length
+    add int, int
+    push_mem int, ptr
+    push int 1
+    add int, int
+    new int8, 0
+    pop_mem int, ptr
+
+    push local result
+    push string.ptr
+    add int, int
+    push_mem int, ptr
+    push arg s
+    push local result
+    push string.length
+    add int, int
+    push_mem int, ptr
+    push int 1
+    add int, int
+    call copy_memory
+    pop int 0
+
+    push local result
+    ret
+
+
+.func int strlen(str s) export:
+   .var int current
+
+   push int 0
+   pop local current
+
+.label $strlen_loop
+   push local current
+   push arg s
+   add int, int
+   push_mem int8, ptr
+
+   push int8 0
+   cmp_eq int8, int8
+
+   jmp_true $strlen_loop_end
+
+   push local current
+   push int 1
+   add int, int
+   pop local current
+
+   jmp $strlen_loop
+
+.label $strlen_loop_end
+
+   push local current
+   ret
+
+
+.func string concat(string a, string b) export:
+    .var int total_length
+    .var string result
+
+    ; int total_length = a.length + b.length
+    push arg a
+    push string.length
+    add int, int
+    push_mem int, ptr
+    push arg b
+    push string.length
+    add int, int
+    push_mem int, ptr
+    add int, int
+    dup
+    dlog int
+    pop local total_length
+
+    ; string* result = new string()
+    new string, 1
+    pop local result
+
+    ; result->length = total_length
+    push local result
+    push string.length
+    add int, int
+    push local total_length
+    pop_mem int, ptr
+
+    ; result->ptr = new int8[total_length + 1]
+    push local result
+    push string.ptr
+    add int, int
+    push local total_length
+    push int 1
+    add int, int
+    new int8, 0
+    pop_mem int, ptr
+
+    ; copy_memory(result->ptr, a.ptr, a.length)
+    push local result
+    push string.ptr
+    add int, int
+    push_mem int, ptr
+
+    push arg a
+    push string.ptr
+    add int, int
+    push_mem int, ptr
+
+    push arg a
+    push string.length
+    add int, int
+    push_mem int, ptr
+
+    call copy_memory
+    pop int 0
+
+    ; copy_memory(result->ptr + a.length, b.ptr, b.length)
+    push local result
+    push string.ptr
+    add int, int
+    push_mem int, ptr
+    push arg a
+    push string.length
+    add int, int
+    push_mem int, ptr
+    add int, int
+
+    push arg b
+    push string.ptr
+    add int, int
+    push_mem int, ptr
+
+    push arg b
+    push string.length
+    add int, int
+    push_mem int, ptr
+
+    call copy_memory
+    pop int 0
+
+    ; *(result->ptr + result.length) = 0
+    push local result
+    push string.ptr
+    add int, int
+    push_mem int, ptr
+    push local total_length
+    add int, int
+    push int8 0
+    pop_mem int8, ptr
+
+    push local result
+    ret

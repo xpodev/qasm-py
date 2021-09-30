@@ -1,0 +1,33 @@
+.section code
+
+.func void copy_memory(ptr dst, ptr src, int length) export:
+    .var int current
+    push int 0
+    pop local current
+
+.label $copy_memory_loop
+    push arg length
+    push local current
+    cmp_eq int, int
+    jmp_true $copy_memory_loop_end
+
+    push local current
+    push arg dst
+    add int, int
+
+    push local current
+    push arg src
+    add int, int
+    push_mem int8, ptr
+
+    pop_mem int8, ptr
+
+    push int 1
+    push local current
+    add int, int
+    pop local current
+
+    jmp $copy_memory_loop
+
+.label $copy_memory_loop_end
+    ret
