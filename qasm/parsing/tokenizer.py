@@ -196,6 +196,10 @@ class Tokenizer(ITokenizer):
                 while self.current_char != '\"':
                     char = self.get_current_char()
                     if char == "\\":
+                        if self.current_char == 'x':
+                            self.get_current_char()
+                            buffer.append(chr(int(self.get_current_char() + self.get_current_char(), base=16)))
+                            continue
                         escaped = self._get_special_character(self.current_char)
                         if escaped:
                             char = escaped
