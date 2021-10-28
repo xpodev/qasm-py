@@ -71,9 +71,10 @@ class Parser(IParser):
         modifiers = self._get_modifiers(tokenizer)
         source = self._get_token(tokenizer, TokenType.Literal_String)
         import_statement = ImportStatement(keyword, source, modifiers)
-        tokenizer.eat(TokenType.LeftCurlyBracket)
-        while not self._try_get_token(tokenizer, TokenType.RightCurlyBracket):
-            import_statement.add_import(self._get_import_declaration(tokenizer))
+        if not self._try_get_token(tokenizer, TokenType.SemiColon):
+            tokenizer.eat(TokenType.LeftCurlyBracket)
+            while not self._try_get_token(tokenizer, TokenType.RightCurlyBracket):
+                import_statement.add_import(self._get_import_declaration(tokenizer))
         return import_statement
 
     def _get_instruction(self, tokenizer: ITokenizer) -> Instruction:
