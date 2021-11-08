@@ -1,5 +1,6 @@
 __all__ = [
     "All",
+    "Generic",
     "Many",
     "Type"
 ]
@@ -53,3 +54,10 @@ class All(Many):
             raise TypeError(f"Expected an instance of \'{Type.__name__}\', got a \'{type(item).__name__}\'")
         return item[...]
 
+
+class Generic(Type):
+    def __init__(self, name: str):
+        super().__init__(f"GenericName<{name}>")
+
+    def __class_getitem__(cls, item) -> "Generic":
+        return cls(item)
