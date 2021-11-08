@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Iterable, Tuple, FrozenSet, Optional, List
+from typing import Iterable, Tuple, FrozenSet, Optional, List, Union
 
 try:
     from .itokenizer import Token
@@ -191,12 +191,12 @@ class ImportStatement:
 
 
 class InstructionArgument:
-    def __init__(self, value: Token, type_name: Optional[Type]) -> None:
+    def __init__(self, value: FullyQualifiedName, type_name: Optional[Type] = None) -> None:
         self._value = value
         self._type = type_name
 
     @property
-    def value(self) -> Token:
+    def value(self) -> FullyQualifiedName:
         return self._value
 
     @property
@@ -216,6 +216,13 @@ class Instruction:
     @property
     def arguments(self) -> Tuple[InstructionArgument]:
         return self._arguments
+
+
+class Label(Instruction):
+    declaration_keyword = "label"
+
+    def __init__(self, keyword: Token, name: FullyQualifiedName):
+        super().__init__(FullyQualifiedName(keyword), [InstructionArgument(name)])
 
 
 class FunctionDefinition(FunctionDeclaration):
