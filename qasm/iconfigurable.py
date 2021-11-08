@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Type, Dict, Union
+from typing import Type
 
 
 __all__ = [
