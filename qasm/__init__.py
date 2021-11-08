@@ -1,3 +1,5 @@
+import os
+
 if True:
     from functools import reduce
     from pathlib import Path
@@ -17,12 +19,13 @@ if True:
             output_path: str = None,
             file_ext: str = ".qpl",
             flags: QPLFlags = 0,
-            arch: ArchitectureInfo = None
+            arch: ArchitectureInfo = None,
+            cwd: str = None
     ):
-        output_path = output_path if output_path else Path(input_path).with_suffix(file_ext)
+        os.chdir(cwd if cwd else Path(input_path).parent)
         with open(input_path) as source:
-            Assembler().assemble(default_parser(Tokenizer(source.read())).parse()).write(
-                output_path,
+            Assembler().assemble(default_parser(Tokenizer(source.read())).parse(), flags).write(
+                output_path if output_path else Path(input_path).with_suffix(file_ext),
                 flags,
                 arch if arch else ArchitectureInfo.get_native_architecture_info(),
             )
