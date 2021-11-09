@@ -2,11 +2,11 @@ from typing import Union, Tuple, Dict, Deque
 from collections import deque
 
 try:
-    from .stack_machine import StackState, StackTransformation, Stack, IncompatibleTypesOnStackError
-    from ..type import *
+    from .stack_machine import *
+    from qasm.asm.instructions.type import *
 except ImportError:
-    from qasm.asm.instructions.stack_machine import StackState, StackTransformation, Stack, IncompatibleTypesOnStackError
-    from qasm.asm.type import *
+    from qasm.asm.instructions.stack_machine import *
+    from qasm.asm.instructions.type import *
 
 
 class InvalidInstructionArgumentType(Exception):
@@ -24,7 +24,51 @@ class InvalidInstructionArgumentType(Exception):
         return self._got
 
 
+class InstructionTemplate:
+    def __init__(self, instruction: "Instruction", *parameters: Template):
+        self._instruction = instruction
+        self._parameters = parameters
+
+    @property
+    def instruction(self):
+        return self._instruction
+
+    @property
+    def parameters(self):
+        return self._parameters
+
+    def build_from(self, *arguments) -> "Instruction":
+        argument_index = 0
+        template_mapping: Dict[str, Tuple[Type, ...]] = {}
+        for parameter in self._parameters:
+            if isinstance(parameter, Many):
+                if parameter.limit < 0:
+                    types = arguments[argument_index:]
+                else:
+                    types = arguments[argument_index:argument_index + parameter.limit]
+                parameter = parameter.type
+            else:
+                types = arguments[argument_index],
+            template_mapping[parameter.name] = types
+            argument_index += len(types)
+        types_before = []
+        types_after = []
+        for type_before in self._instruction.transformation.before.types:
+            if isinstance(type_before, Template):
+                types_before.extend(template_mapping[type_before.name])
+            else:
+                types_before.append(type_before)
+        for type_after in self._instruction.transformation.after.types:
+            if isinstance(type_after, Template):
+                types_after.extend(template_mapping[type_after.name])
+            else:
+                types_after.append(type_after)
+        return Instruction(self._instruction.name, self._instruction.parameters, StackState(*types_before), StackState(*types_after))
+
+
 class Instruction:
+    __slots__ = ("_transformation", "_name", "_parameters", "opcode")
+
     def __init__(self, name: str, parameters: Union[Tuple[Type, ...], Type], in_: Union[StackTransformation, StackState, Tuple[Type]], out: Union[StackState, Tuple[Type], None] = None):
         if isinstance(parameters, Type):
             parameters = (parameters,)
@@ -64,6 +108,9 @@ class Instruction:
         types_before: Deque[Type] = deque()
         types_after: Deque[Type] = deque()
         generic_mapping: Dict[str, Type] = {}
+        before = unpack_types(self._transformation.before.types)
+        if len(before) > len(stack):
+            raise NotEnoughValuesError(len(before), len(stack))
         for argument, parameter in zip(arguments, self._parameters):
             try:
                 parameter = generic_mapping[parameter.name]
@@ -137,4 +184,13 @@ if __name__ == '__main__':
     print(9, stack)
     sum_many = reduce.build_from(stack)
     stack.apply(sum_many.transformation)
+    stack.apply(StackState[Int] >> StackState[String, Int[3]])
     print(10, stack)
+    templated = Instruction("call", Int, StackState(Generic('T'), Template('Ts')), StackState(Template("ReturnT"), Generic('T')))
+    template = InstructionTemplate(templated, Template("ReturnT"), Template('Ts')[...])
+    function_i3_i = template.build_from(Int, Int, Int, Int)
+    print(function_i3_i)
+    templated_ints = function_i3_i.build_from(stack, Int)
+    print(templated_ints)
+    stack.apply(templated_ints.transformation)
+    print(11, stack)

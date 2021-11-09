@@ -4,9 +4,9 @@ from typing import Deque, Optional
 from pprint import pprint
 
 try:
-    from ..type import *
+    from qasm.asm.instructions.type import *
 except ImportError:
-    from qasm.asm.type import *
+    from qasm.asm.instructions.type import *
 
 
 class InvalidStackOperationError(Exception):

@@ -4,6 +4,7 @@ __all__ = [
     "All",
     "Generic",
     "Many",
+    "Template",
     "Type",
     "unpack_types"
 ]
@@ -66,11 +67,27 @@ class Generic(Type):
         return cls(item)
 
 
+class Template(Type):
+    __slots__ = ("types", )
+
+    def __init__(self, name: str, *types: Type):
+        super().__init__(f"TemplateName<{name}>")
+        self._types = types
+
+    def __class_getitem__(cls, item) -> "Template":
+        return cls(item)
+
+
 def unpack_types(types: Iterable[Type]) -> Tuple[Type, ...]:
     result = []
     for typ in types:
         if isinstance(typ, Many) and typ.limit >= 0:
             result.extend(unpack_types(typ.type for _ in range(typ.limit)))
+        elif isinstance(typ, Template):
+            try:
+                result.extend(typ.types)
+            except AttributeError:
+                result.append(typ)
         else:
             result.append(typ)
     return tuple(result)
