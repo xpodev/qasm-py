@@ -15,7 +15,7 @@ class InvalidStackOperationError(Exception):
 
 class StackState:
     def __init__(self, *types: Type):
-        self._types = types
+        self._types = unpack_types(types)
 
     @property
     def types(self):
@@ -101,9 +101,12 @@ class Stack(deque, Deque[Type]):
         return tuple(self)[-n:]
 
     def try_pop_type(self, typ: Type) -> Optional[Type]:
-        if self[-1] != typ:
+        try:
+            if self[-1] != typ:
+                return None
+            return self.pop()
+        except IndexError:
             return None
-        return self.pop()
 
     def pop_type(self, typ: Type) -> Type:
         top = self.try_pop_type(typ)
@@ -119,7 +122,7 @@ class Stack(deque, Deque[Type]):
         for typ in reversed(transformation.before.types):
             if isinstance(typ, Many):
                 if typ.limit < 0:
-                    while self.try_pop_type(typ):
+                    while self.try_pop_type(typ.type):
                         ...
                 else:
                     for i in range(typ.limit):

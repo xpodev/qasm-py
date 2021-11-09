@@ -66,12 +66,10 @@ class Generic(Type):
         return cls(item)
 
 
-def unpack_types(types: Iterable[Type]) -> Tuple[Type]:
+def unpack_types(types: Iterable[Type]) -> Tuple[Type, ...]:
     result = []
     for typ in types:
-        if isinstance(typ, Many):
-            if typ.limit < 0:
-                raise ValueError(f"Can't unpack unlimited amount of types")
+        if isinstance(typ, Many) and typ.limit >= 0:
             result.extend(unpack_types(typ.type for _ in range(typ.limit)))
         else:
             result.append(typ)

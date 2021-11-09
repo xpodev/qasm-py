@@ -3,10 +3,10 @@ from collections import deque
 
 try:
     from .stack_machine import StackState, StackTransformation, Stack, IncompatibleTypesOnStackError
-    from ..type import Type, Generic
+    from ..type import *
 except ImportError:
     from qasm.asm.instructions.stack_machine import StackState, StackTransformation, Stack, IncompatibleTypesOnStackError
-    from qasm.asm.type import Type, Generic
+    from qasm.asm.type import *
 
 
 class InvalidInstructionArgumentType(Exception):
@@ -72,15 +72,26 @@ class Instruction:
             else:
                 if argument.name != parameter.name:
                     raise InvalidInstructionArgumentType(parameter, argument)
-        for stack_type, type_before in zip(stack.top(len(self._transformation.before.types)), self._transformation.before.types):
+        for stack_type, type_before in zip(stack.top(len(self._transformation.before.types)), unpack_types(self._transformation.before.types)):
+            if isinstance(type_before, Many):
+                many = type_before
+                type_before = type_before.type
+            else:
+                many = None
             if isinstance(type_before, Generic):
                 try:
                     type_before = generic_mapping[type_before.name]
                 except KeyError:
                     generic_mapping[type_before.name] = type_before = stack_type
+            if many:
+                type_before = Many(type_before, many.limit)
             types_before.append(type_before)
         for stack_type, type_before in zip(reversed(stack), reversed(types_before)):
-            if type_before.name != stack_type.name:
+            if isinstance(type_before, Many):
+                if type_before.limit <= 0:
+                    continue
+                raise ValueError(f"Somehow {type_before} was not unpacked")
+            elif type_before.name != stack_type.name:
                 raise IncompatibleTypesOnStackError(
                     types_before,
                     stack.top(len(self._transformation.before.types))
@@ -109,6 +120,7 @@ if __name__ == '__main__':
     print(3, stack)
     add = Instruction("add", (), StackState(Generic('T'), Generic('T')), StackState(Generic('T')))
     pop_by_type = Instruction("pop", (Generic('T'), Generic('T')), StackState(Generic('T')), StackState())
+    reduce = Instruction("reduce", (), StackState(Generic('T')[...]), StackState(Generic('T')))
     add_int = add.build_from(stack)
     print(4, add_int)
     stack.apply(add_int.transformation)
@@ -121,3 +133,8 @@ if __name__ == '__main__':
     pop_float = pop_by_type.build_from(stack, Float, Float)
     stack.apply(pop_float.transformation)
     print(8, stack)
+    stack.apply(StackState[...] >> StackState[Int[10]])
+    print(9, stack)
+    # sum_many = reduce.build_from(stack)
+    # stack.apply(sum_many.transformation)
+    print(10, stack)
