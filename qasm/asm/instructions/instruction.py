@@ -30,6 +30,10 @@ class InstructionTemplate:
         self._parameters = parameters
 
     @property
+    def name(self):
+        return self._instruction.name
+
+    @property
     def instruction(self):
         return self._instruction
 
