@@ -1,8 +1,11 @@
+from typing import Iterable, Tuple
+
 __all__ = [
     "All",
     "Generic",
     "Many",
-    "Type"
+    "Type",
+    "unpack_types"
 ]
 
 
@@ -61,3 +64,15 @@ class Generic(Type):
 
     def __class_getitem__(cls, item) -> "Generic":
         return cls(item)
+
+
+def unpack_types(types: Iterable[Type]) -> Tuple[Type]:
+    result = []
+    for typ in types:
+        if isinstance(typ, Many):
+            if typ.limit < 0:
+                raise ValueError(f"Can't unpack unlimited amount of types")
+            result.extend(unpack_types(typ.type for _ in range(typ.limit)))
+        else:
+            result.append(typ)
+    return tuple(result)
