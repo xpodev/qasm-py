@@ -135,6 +135,6 @@ if __name__ == '__main__':
     print(8, stack)
     stack.apply(StackState[...] >> StackState[Int[10]])
     print(9, stack)
-    # sum_many = reduce.build_from(stack)
-    # stack.apply(sum_many.transformation)
+    sum_many = reduce.build_from(stack)
+    stack.apply(sum_many.transformation)
     print(10, stack)
