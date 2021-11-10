@@ -163,7 +163,7 @@ class ConfigSection(AssemblySection["config"]):
         # )
         return b"".join([
             b"".join([
-                typ.to_bytes(typ.parse(value) if not issubclass(typ, Pointer) else assembler.label_manager.get_label(value).offset)
+                typ.to_bytes(typ.parse(value) if typ is not Pointer else assembler.label_manager.get_label(value).offset)
                 for value, typ in zip(option.value, option.types)
             ])
             for option in self._config_values.values()
@@ -216,32 +216,32 @@ class CodeSection(SizedSection["code"]):
             for pt, arg in zip(inst.types, instruction.arguments):
                 if pt is Type:
                     pt = Int8
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[arg.value.value])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[arg.value.value])
                     arg = InstructionNode.InstructionArgument(tkn, pt.name)
                 elif pt is TypeSize:
                     pt = Int
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, assembler.get_type(arg.value.value).size)
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, assembler.get_type(arg.value.value).size)
                     arg = InstructionNode.InstructionArgument(tkn, pt.name)
                 if isinstance(pt, AnyOf):
                     if arg.type is None:
-                        raise ValueError(f"One of {tuple(map(str, pt.types))} must be supplied (error at line {arg.value.line}, char {arg.value.current_char})")
+                        raise ValueError(f"One of {tuple(map(str, pt.types))} must be supplied (error at line {arg.value.line}, char {arg.value.char})")
                     pt = TYPE_TABLE[arg.type]
                     types_.append(Int8)
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
                 if pt is Variable:
                     pt = assembler.get_type(arg.type) if arg.type else bin_type_from_token_type(arg.value.type)
                     if isinstance(pt, TypeDefinition):
                         pt = Pointer[pt]
                     types_.append(Int8)
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, TYPE_INDEX[pt.name])
                     args.append(InstructionNode.InstructionArgument(tkn))
                 if pt is Local:
                     name = arg.value.value
                     local = assembler.current_function.locals[name]
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[local.type.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, assembler.get_type(local.type.name).index())
                     args.append(InstructionNode.InstructionArgument(tkn))
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, local.index)
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, local.index)
                     args.append(InstructionNode.InstructionArgument(tkn))
                     types_.append(Int8)
                     types_.append(Local)
@@ -249,9 +249,9 @@ class CodeSection(SizedSection["code"]):
                 elif pt is Argument:
                     name = arg.value.value
                     param = assembler.current_function.parameters[name]
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, TYPE_INDEX[param.type.name])
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, assembler.get_type(param.type.name).index())
                     args.append(InstructionNode.InstructionArgument(tkn))
-                    tkn = Token(arg.value.line, arg.value.current_char, TokenType.Literal_Int, param.index)
+                    tkn = Token(arg.value.line, arg.value.char, TokenType.Literal_Int, param.index)
                     args.append(InstructionNode.InstructionArgument(tkn))
                     types_.append(Int8)
                     types_.append(Argument)
@@ -300,7 +300,7 @@ class CodeSection(SizedSection["code"]):
                         args.append(TYPE_INDEX[param.type.name])
                         args.append(param.index)
                         types_.append(Int8)
-                        types_.append(InstructionArgument)
+                        types_.append(Argument)
                         continue
                     except KeyError:
                         ...
@@ -379,9 +379,12 @@ class ImportSection(SizedSection["imports"]):
     def on_instruction(self, instruction: InstructionNode, assembler):
         if instruction.opname == "load":
             path = instruction.arguments[0].value.value
-            file = read_file(path)
-            self._current_export_table = ExportTable.from_bytes(file.sections[ExportSection.name])
-            self._data.extend(file.raw_data)
+            if path.endswith(".dll"):
+                raise NotImplementedError(f"DLLs are not yet supported")
+            else:
+                file = read_file(path)
+                self._current_export_table = ExportTable.from_bytes(file.sections[ExportSection.name])
+                self._data.extend(file.raw_data)
         elif instruction.opname == "import":
             if self._current_export_table is None:
                 raise ValueError(f"Can't import function without loading a file first. use \'load {{file_path}}\' before importing.")
@@ -441,7 +444,8 @@ class TypesSection(SizedSection["types"]):
 class Assembler:
     def __init__(self):
         self._config = ConfigSection(
-            ConfigSection.Option("entry", Pointer)
+            ConfigSection.Option("entry", Pointer),
+            ConfigSection.Option("languageVersion", String)
         )
         self._code = CodeSection()
         self._data = DataSection()
@@ -510,9 +514,9 @@ class Assembler:
                 self._current_function = Function(
                     node.name,
                     self._code.size,
-                    TYPE_TABLE[node.return_type],
+                    self.get_type(node.return_type),
                     {
-                        p.name: Parameter(p.name, TYPE_TABLE[p.type], i) for i, p in enumerate(node.parameters)
+                        p.name: Parameter(p.name, self.get_type(p.type), i) for i, p in enumerate(node.parameters)
                     },
                     {},
                     (),

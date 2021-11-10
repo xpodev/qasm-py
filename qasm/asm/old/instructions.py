@@ -61,7 +61,7 @@ def setup():
     add(InstructionDefinition("pop", 3, Variable))
 
     add(InstructionDefinition("call", 4, RelativePointer))
-    add(InstructionDefinition("unsafe_call", 5, RelativePointer))
+    add(InstructionDefinition("calli", 5, RelativePointer))
     add(InstructionDefinition("ret", 6))
 
     add(InstructionDefinition("jmp", 7, RelativePointer))
@@ -88,6 +88,8 @@ def setup():
     add(InstructionDefinition("free", 24))
 
     add(InstructionDefinition("dup", 25))
+
+    add(InstructionDefinition("call_ext", 26, Int8))
 
     add(InstructionDefinition("exit", -1))
 

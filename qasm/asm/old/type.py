@@ -1,6 +1,6 @@
 from typing import Iterable, Optional, Dict
 
-from qasm.asm.old.bin_types import TypeMeta, Type
+from qasm.asm.old.bin_types import TypeMeta, Type, Pointer
 from qasm.asm.old.label import Label
 
 
@@ -33,6 +33,10 @@ class TypeDefinition(Type, Label):
     @property
     def name(self):
         return self._name
+
+    @classmethod
+    def index(cls):
+        return Pointer.index()
 
     @property
     def size(self):
